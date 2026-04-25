@@ -1,0 +1,44 @@
+# Editor
+export EDITOR=/usr/local/bin/code
+
+# Aliases
+alias chrome="open -a 'Google Chrome'"
+alias chrome-debug="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
+    --remote-debugging-port=9222 \
+    --profile-directory='Profile 9'"
+
+# Completions
+autoload -Uz compinit && compinit
+
+# zsh plugins (sourced directly, no framework)
+source /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+
+# Prompt
+eval "$(starship init zsh)"
+
+# Tools
+eval "$(fnm env --use-on-cd --shell zsh)"
+eval "$(direnv hook zsh)"
+
+# Functions
+ghc() {
+    copilot \
+        --allow-tool='write' \
+        --allow-tool='shell(git log)' \
+        --allow-tool='shell(git status)' \
+        --allow-tool='shell(echo)' \
+        --allow-tool='shell(grep)' \
+        --allow-tool='shell(find)' \
+        --allow-tool='shell(ls)' \
+        --allow-tool='shell(cat)' \
+        --allow-tool='shell(head)' \
+        --allow-tool='shell(tail)' \
+        --allow-tool='shell(sed)' \
+        --allow-tool='shell(awk)' \
+        --allow-tool='shell(sort)' \
+        --allow-tool='shell(uniq)' \
+        --allow-tool='shell(wc)' \
+        --allow-tool='shell(jq)' \
+        "$@"
+}
