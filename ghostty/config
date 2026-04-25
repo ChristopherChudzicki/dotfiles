@@ -10,3 +10,8 @@ command = /opt/homebrew/bin/fish --login
 # Window padding
 window-padding-x = 6
 window-padding-y = 6
+
+# Theme — closest built-in match to the prior iTerm2 default-with-grey-bg setup.
+theme = iTerm2 Default
+background = 404040
+foreground = bbbbbb
