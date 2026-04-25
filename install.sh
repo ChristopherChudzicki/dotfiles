@@ -10,6 +10,7 @@ BACKUP_DIR="$HOME/dotfiles-backup/$(date +%Y-%m-%d)"
 mkdir -p "$BACKUP_DIR"
 mkdir -p "$HOME/.config/fish/conf.d"
 mkdir -p "$HOME/.config/fish/functions"
+mkdir -p "$HOME/.config/ghostty"
 
 link() {
     local src="$1"
@@ -41,6 +42,7 @@ link "$REPO_DIR/zsh/zshrc"              "$HOME/.zshrc"
 link "$REPO_DIR/zsh/zprofile"           "$HOME/.zprofile"
 link "$REPO_DIR/fish/config.fish"       "$HOME/.config/fish/config.fish"
 link "$REPO_DIR/starship/starship.toml" "$HOME/.config/starship.toml"
+link "$REPO_DIR/ghostty/config"         "$HOME/.config/ghostty/config"
 
 # Fish conf.d/ files
 for src in "$REPO_DIR"/fish/conf.d/*.fish; do

@@ -1,0 +1,12 @@
+# Font (Nerd Font required for starship's branch / language glyphs)
+# Install once:
+#   brew install --cask font-jetbrains-mono-nerd-font
+font-family = JetBrainsMono Nerd Font
+font-size = 14
+
+# Run fish explicitly so this works even before/without chsh.
+command = /opt/homebrew/bin/fish --login
+
+# Window padding
+window-padding-x = 6
+window-padding-y = 6

@@ -7,6 +7,7 @@ Shell, prompt, and editor config synced between Macs.
 - `zsh/` — zshrc and zprofile
 - `fish/` — config.fish, conf.d/ (autoloaded settings), functions/ (autoloaded functions)
 - `starship/` — prompt config (used by both shells)
+- `ghostty/` — Ghostty terminal emulator config
 - `install.sh` — idempotent symlink installer with backups
 - `docs/` — design and plan documents
 
@@ -19,6 +20,7 @@ cd ~/dev/personal-dotfiles
 
 # 2. Install dependencies via brew
 brew install fnm starship fish zsh-syntax-highlighting zsh-autosuggestions
+brew install --cask ghostty font-jetbrains-mono-nerd-font
 
 # 3. Symlink config (backs up any existing files first)
 ./install.sh
