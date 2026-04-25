@@ -2,7 +2,7 @@
 # Install once:
 #   brew install --cask font-jetbrains-mono-nerd-font
 font-family = JetBrainsMono Nerd Font
-font-size = 14
+font-size = 20
 
 # Run fish explicitly so this works even before/without chsh.
 command = /opt/homebrew/bin/fish --login
@@ -15,3 +15,8 @@ window-padding-y = 6
 theme = iTerm2 Default
 background = 404040
 foreground = bbbbbb
+
+# Translucent background with blur (matches the prior iTerm2 setup).
+# Comment these two lines for a fully opaque window.
+background-opacity = 0.88
+background-blur = 21
