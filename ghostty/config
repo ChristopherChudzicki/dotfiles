@@ -11,10 +11,9 @@ command = /opt/homebrew/bin/fish --login
 window-padding-x = 6
 window-padding-y = 6
 
-# Theme — closest built-in match to the prior iTerm2 default-with-grey-bg setup.
-theme = iTerm2 Default
-background = 404040
-foreground = bbbbbb
+# Theme — pixel-perfect match of the prior iTerm2 default profile.
+# Lives at ~/.config/ghostty/themes/iterm-default-grey (symlinked by install.sh).
+theme = iterm-default-grey
 
 # Translucent background with blur (matches the prior iTerm2 setup).
 # Comment these two lines for a fully opaque window.

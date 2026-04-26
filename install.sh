@@ -11,6 +11,7 @@ mkdir -p "$BACKUP_DIR"
 mkdir -p "$HOME/.config/fish/conf.d"
 mkdir -p "$HOME/.config/fish/functions"
 mkdir -p "$HOME/.config/ghostty"
+mkdir -p "$HOME/.config/ghostty/themes"
 
 link() {
     local src="$1"
@@ -52,6 +53,12 @@ done
 # Fish functions/ files
 for src in "$REPO_DIR"/fish/functions/*.fish; do
     link "$src" "$HOME/.config/fish/functions/$(basename "$src")"
+done
+
+# Ghostty user themes
+for src in "$REPO_DIR"/ghostty/themes/*; do
+    [ -f "$src" ] || continue
+    link "$src" "$HOME/.config/ghostty/themes/$(basename "$src")"
 done
 
 echo
