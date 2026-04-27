@@ -1,5 +1,6 @@
 function show-colors --description 'Print ANSI 16-color swatches with hex from the active Ghostty theme'
     set -l names black red green yellow blue magenta cyan white
+    set -l sample 'Lorem ipsum dolor sit amet'
 
     # Find active theme name from ghostty config
     set -l theme (string match -gr '^theme\s*=\s*(.+)$' < ~/.config/ghostty/config 2>/dev/null | tail -1 | string trim)
@@ -38,7 +39,7 @@ function show-colors --description 'Print ANSI 16-color swatches with hex from t
     for i in (seq 8)
         set -l idx (math $i - 1)
         set -l fg (math 30 + $idx)
-        printf '    \e[%dm████\e[0m  %-2d  %-8s  #%s\n' $fg $idx $names[$i] $hex[$i]
+        printf '    \e[%dm████\e[0m  %-2d  %-14s  #%s   \e[%dm%s\e[0m\n' $fg $idx $names[$i] $hex[$i] $fg $sample
     end
 
     echo
@@ -46,7 +47,7 @@ function show-colors --description 'Print ANSI 16-color swatches with hex from t
     for i in (seq 8)
         set -l idx (math $i + 7)
         set -l fg (math 90 + $i - 1)
-        printf '    \e[%dm████\e[0m  %-2d  bright %-8s  #%s\n' $fg $idx $names[$i] $hex[(math $i + 8)]
+        printf '    \e[%dm████\e[0m  %-2d  %-14s  #%s   \e[%dm%s\e[0m\n' $fg $idx "bright $names[$i]" $hex[(math $i + 8)] $fg $sample
     end
 
     echo
