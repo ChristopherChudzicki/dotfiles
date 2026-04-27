@@ -20,7 +20,7 @@ cd ~/dev/personal-dotfiles
 
 # 2. Install dependencies via brew
 brew install fnm starship fish zsh-syntax-highlighting zsh-autosuggestions
-brew install --cask ghostty font-jetbrains-mono-nerd-font
+brew install --cask ghostty font-droid-sans-mono-nerd-font
 
 # 3. Symlink config (backs up any existing files first)
 ./install.sh

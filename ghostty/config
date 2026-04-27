@@ -1,7 +1,7 @@
 # Font (Nerd Font required for starship's branch / language glyphs)
 # Install once:
 #   brew install --cask font-jetbrains-mono-nerd-font
-font-family = JetBrainsMono Nerd Font
+font-family = DroidSansM Nerd Font Mono
 font-size = 20
 
 # Render bold ANSI colors using the bright palette (matches iTerm's "Use Bright Bold").
