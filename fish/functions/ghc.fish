@@ -1,4 +1,4 @@
-function ghc
+function ghc --description 'Run GitHub Copilot CLI with a default allow-list of read-only shell tools'
     copilot \
         --allow-tool='write' \
         --allow-tool='shell(git log)' \
