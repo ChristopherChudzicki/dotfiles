@@ -1,1 +1,1 @@
-set -gx EDITOR /usr/local/bin/code
+set -gx EDITOR code

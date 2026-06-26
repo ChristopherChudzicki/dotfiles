@@ -1,11 +1,8 @@
-# Editor
-export EDITOR=/usr/local/bin/code
+# Editor (PATH-resolved; VS Code's "Install 'code' command in PATH")
+export EDITOR=code
 
 # Aliases
 alias chrome="open -a 'Google Chrome'"
-alias chrome-debug="/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
-    --remote-debugging-port=9222 \
-    --profile-directory='Profile 9'"
 
 # Completions
 autoload -Uz compinit && compinit
