@@ -7,9 +7,6 @@ font-size = 20
 # Render bold ANSI colors using the bright palette (matches iTerm's "Use Bright Bold").
 bold-is-bright = true
 
-# Run fish explicitly so this works even before/without chsh.
-command = /opt/homebrew/bin/fish --login
-
 # Window padding
 window-padding-x = 6
 window-padding-y = 6

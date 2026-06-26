@@ -19,7 +19,7 @@ git clone <this-repo-url> ~/dev/personal-dotfiles
 cd ~/dev/personal-dotfiles
 
 # 2. Install dependencies via brew
-brew install fnm starship fish zsh-syntax-highlighting zsh-autosuggestions
+brew install fnm starship fish direnv zsh-syntax-highlighting zsh-autosuggestions
 brew install --cask ghostty font-droid-sans-mono-nerd-font
 
 # 3. Symlink config (backs up any existing files first).
@@ -33,9 +33,10 @@ brew install --cask ghostty font-droid-sans-mono-nerd-font
 # 5. (Optional) Try fish in the same terminal
 fish
 
-# 6. (Optional, per-machine) Make fish your login shell.
-#    Not symlinked — it mutates system state (/etc/shells needs sudo) and is a
-#    per-machine choice. Skip it on machines where you want zsh as the default.
+# 6. (Per-machine) To make fish your shell, set it as your login shell.
+#    Ghostty and other terminals launch your login shell, so this is what makes
+#    fish the default. Not symlinked — it mutates system state (/etc/shells needs
+#    sudo) and is a per-machine choice; skip it to keep zsh (e.g. a work machine).
 fish_path="$(brew --prefix)/bin/fish"
 grep -qxF "$fish_path" /etc/shells || echo "$fish_path" | sudo tee -a /etc/shells
 chsh -s "$fish_path"
