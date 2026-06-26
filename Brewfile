@@ -12,6 +12,8 @@ brew "zsh-autosuggestions"
 # Tooling
 brew "fnm"      # Node version manager
 brew "direnv"   # per-directory env
+brew "uv"       # Python package/env manager
+brew "gh"       # GitHub CLI
 
 # Casks
 cask "ghostty"                        # terminal emulator
