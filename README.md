@@ -48,8 +48,3 @@ Edit files in this repo directly. Symlinks point here, so changes are live in ne
 ## Backups
 
 `install.sh` backs up any pre-existing config files to `~/dotfiles-backup/<date>/` before replacing them with symlinks.
-
-## Notes
-
-- `nvm` (if present) is left on disk; `fnm` is used for new work. Re-install needed Node versions: `fnm install <version>`.
-- `pyenv` (if present) is left on disk but no longer initialized. `uv` covers Python use cases. Remove via `brew uninstall pyenv` when confident.
