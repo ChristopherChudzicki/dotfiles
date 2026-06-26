@@ -5,10 +5,10 @@
 # Fish functions are bucketed: shared/ is always linked; personal/ and work/
 # are linked only when explicitly requested.
 #
-#   ./install.sh                     # shared functions only
-#   ./install.sh --personal          # shared + personal
-#   ./install.sh --work              # shared + work
-#   ./install.sh --personal --work   # everything (e.g. a transition machine)
+#   ./link.sh                     # shared functions only
+#   ./link.sh --personal          # shared + personal
+#   ./link.sh --work              # shared + work
+#   ./link.sh --personal --work   # everything (e.g. a transition machine)
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ for arg in "$@"; do
     case "$arg" in
         --personal) INSTALL_PERSONAL=1 ;;
         --work)     INSTALL_WORK=1 ;;
-        -h|--help)  echo "usage: ./install.sh [--personal] [--work]"; exit 0 ;;
+        -h|--help)  echo "usage: ./link.sh [--personal] [--work]"; exit 0 ;;
         *) echo "unknown option: $arg (try --personal, --work)" >&2; exit 1 ;;
     esac
 done
@@ -26,11 +26,16 @@ done
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$HOME/dotfiles-backup/$(date +%Y-%m-%d)"
 
+# espanso config dir (macOS location)
+ESPANSO_DIR="$HOME/Library/Application Support/espanso"
+
 mkdir -p "$BACKUP_DIR"
 mkdir -p "$HOME/.config/fish/conf.d"
 mkdir -p "$HOME/.config/fish/functions"
 mkdir -p "$HOME/.config/ghostty"
 mkdir -p "$HOME/.config/ghostty/themes"
+mkdir -p "$ESPANSO_DIR/config"
+mkdir -p "$ESPANSO_DIR/match"
 
 link() {
     local src="$1"
@@ -75,6 +80,8 @@ prune_repo_links() {
 prune_repo_links "$HOME/.config/fish/functions"
 prune_repo_links "$HOME/.config/fish/conf.d"
 prune_repo_links "$HOME/.config/ghostty/themes"
+prune_repo_links "$ESPANSO_DIR/config"
+prune_repo_links "$ESPANSO_DIR/match"
 
 # Top-level files
 link "$REPO_DIR/zsh/zshrc"              "$HOME/.zshrc"
@@ -107,6 +114,12 @@ for src in "$REPO_DIR"/ghostty/themes/*; do
     [ -f "$src" ] || continue
     link "$src" "$HOME/.config/ghostty/themes/$(basename "$src")"
 done
+
+# espanso — global config and base matches. Installed packages (e.g. lorem)
+# are managed by espanso itself and intentionally not tracked here; restore
+# them with `espanso install <pkg>` (see README).
+link "$REPO_DIR/espanso/config/default.yml" "$ESPANSO_DIR/config/default.yml"
+link "$REPO_DIR/espanso/match/base.yml"     "$ESPANSO_DIR/match/base.yml"
 
 echo
 echo "done. backups (if any) at: $BACKUP_DIR"

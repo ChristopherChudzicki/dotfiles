@@ -8,7 +8,10 @@ Shell, prompt, and editor config synced between Macs.
 - `fish/` — config.fish, conf.d/ (autoloaded settings), functions/ (autoloaded functions, bucketed into `shared/`, `personal/`, `work/`)
 - `starship/` — prompt config (used by both shells)
 - `ghostty/` — Ghostty terminal emulator config
-- `install.sh` — idempotent symlink installer with backups
+- `espanso/` — espanso text expander: global config (`config/`) and snippets (`match/`)
+- `link.sh` — idempotent symlink installer with backups
+- `install-deps.sh` — installs Homebrew dependencies (idempotent)
+- `Brewfile` — declarative list of brew formulae and casks
 - `docs/` — design and plan documents
 
 ## Bootstrap on a new machine
@@ -18,15 +21,14 @@ Shell, prompt, and editor config synced between Macs.
 git clone <this-repo-url> ~/dev/personal-dotfiles
 cd ~/dev/personal-dotfiles
 
-# 2. Install dependencies via brew
-brew install fnm starship fish direnv zsh-syntax-highlighting zsh-autosuggestions
-brew install --cask ghostty font-droid-sans-mono-nerd-font
+# 2. Install dependencies (brew formulae + casks from the Brewfile). Idempotent.
+./install-deps.sh
 
 # 3. Symlink config (backs up any existing files first).
 #    Fish functions: shared/ is always linked; pick which private buckets to add.
-./install.sh --personal            # personal machine
-# ./install.sh --work              # work machine
-# ./install.sh --personal --work   # a machine that's both (e.g. during transition)
+./link.sh --personal            # personal machine
+# ./link.sh --work              # work machine
+# ./link.sh --personal --work   # a machine that's both (e.g. during transition)
 
 # 4. Open a new terminal — zsh picks up the new config
 
@@ -48,9 +50,10 @@ Edit files in this repo directly. Symlinks point here, so changes are live in ne
 
 ## Backups
 
-`install.sh` backs up any pre-existing config files to `~/dotfiles-backup/<date>/` before replacing them with symlinks.
+`link.sh` backs up any pre-existing config files to `~/dotfiles-backup/<date>/` before replacing them with symlinks.
 
 ## Notes
 
+- espanso: only the global config and base snippets are tracked; hub packages are managed by espanso, not symlinked. `install-deps.sh` reinstalls them (currently just `lorem`) — add new ones to the `ESPANSO_PACKAGES` list there.
 - `nvm` (if present) is left on disk; `fnm` is used for new work. Re-install needed Node versions: `fnm install <version>`.
 - `pyenv` (if present) is left on disk but no longer initialized. `uv` covers Python use cases. Remove via `brew uninstall pyenv` when confident.
