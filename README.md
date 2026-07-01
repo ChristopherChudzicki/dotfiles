@@ -1,4 +1,4 @@
-# personal-dotfiles
+# dotfiles
 
 Shell, prompt, and editor config synced between Macs.
 
@@ -18,11 +18,12 @@ Shell, prompt, and editor config synced between Macs.
 
 ```bash
 # 1. Clone
-git clone <this-repo-url> ~/dev/personal-dotfiles
-cd ~/dev/personal-dotfiles
+git clone <this-repo-url> ~/dev/dotfiles
+cd ~/dev/dotfiles
 
 # 2. Install dependencies (brew formulae + casks from the Brewfile). Idempotent.
-./install-deps.sh
+./install-deps.sh                 # installs missing deps only
+# ./install-deps.sh --upgrade-all # also upgrade already-installed deps
 
 # 3. Symlink config (backs up any existing files first).
 #    Fish functions: shared/ is always linked; pick which private buckets to add.

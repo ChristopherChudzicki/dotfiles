@@ -7,14 +7,38 @@ set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# Parse args.
+UPGRADE=false
+for arg in "$@"; do
+    case "$arg" in
+        --upgrade-all)
+            UPGRADE=true
+            ;;
+        -h | --help)
+            echo "Usage: $(basename "$0") [--upgrade-all]"
+            echo "  --upgrade-all  Also upgrade already-installed deps (default: install missing only)."
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $arg" >&2
+            echo "Usage: $(basename "$0") [--upgrade-all]" >&2
+            exit 1
+            ;;
+    esac
+done
+
 # --- Homebrew formulae + casks (from the Brewfile) ---------------------------
-# --no-upgrade: install what's missing but don't silently bump existing versions.
-# To deliberately upgrade: brew bundle install --file=Brewfile  (drop --no-upgrade)
+# By default, --no-upgrade installs what's missing but doesn't silently bump
+# existing versions. Pass --upgrade-all to drop it and upgrade everything.
 if ! command -v brew >/dev/null 2>&1; then
     echo "Homebrew not found. Install it first: https://brew.sh" >&2
     exit 1
 fi
-brew bundle install --no-upgrade --file="$REPO_DIR/Brewfile"
+if [ "$UPGRADE" = true ]; then
+    brew bundle install --file="$REPO_DIR/Brewfile"
+else
+    brew bundle install --no-upgrade --file="$REPO_DIR/Brewfile"
+fi
 
 # --- espanso packages (espanso's own package manager, not brew) --------------
 # espanso is installed by the Brewfile above. Its hub packages are managed
