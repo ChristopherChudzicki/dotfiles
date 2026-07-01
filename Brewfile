@@ -12,8 +12,9 @@ brew "zsh-autosuggestions"
 # Tooling
 brew "fnm"      # Node version manager
 brew "direnv"   # per-directory env
-brew "uv"       # Python package/env manager
-brew "gh"       # GitHub CLI
+brew "uv"         # Python package/env manager
+brew "gh"         # GitHub CLI
+brew "pre-commit" # git hook manager (hook versions pinned per-repo in .pre-commit-config.yaml)
 
 # Casks
 cask "ghostty"                        # terminal emulator
