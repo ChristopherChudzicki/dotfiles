@@ -19,4 +19,5 @@ brew "pre-commit" # git hook manager (hook versions pinned per-repo in .pre-comm
 # Casks
 cask "ghostty"                        # terminal emulator
 cask "espanso"                        # text expander
+cask "orbstack"                       # Docker/Linux VM runtime (provides docker CLI)
 cask "font-droid-sans-mono-nerd-font" # terminal font
