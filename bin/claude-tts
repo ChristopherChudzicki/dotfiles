@@ -52,6 +52,10 @@ app = cyclopts.App(help="Read Claude Code responses aloud (macOS `say`).")
 STATE_DIR = Path.home() / ".claude" / "tts"
 PID_FILE = STATE_DIR / "say.pid"
 
+# Speaking rate in words per minute passed to `say -r`. None = the system
+# default (~175). Bump it (e.g. 220) to read faster.
+SPEECH_RATE_WPM: int | None = 275
+
 # Full responses are read (killable via the UserPromptSubmit hook), but a
 # runaway wall of text shouldn't trap you narrating for ten minutes.
 MAX_WORDS = 2000
@@ -245,8 +249,11 @@ def _kill_current() -> None:
 def _speak_detached(text: str) -> None:
     """Fire `say` in its own session so it outlives this hook process."""
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+    cmd = ["say"]
+    if SPEECH_RATE_WPM is not None:
+        cmd += ["-r", str(SPEECH_RATE_WPM)]
     proc = subprocess.Popen(
-        ["say"],
+        cmd,
         stdin=subprocess.PIPE,
         start_new_session=True,
     )
