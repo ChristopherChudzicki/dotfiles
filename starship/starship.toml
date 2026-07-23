@@ -3,6 +3,7 @@
 # Replaces spaceship-prompt.
 
 format = """
+${custom.eks_writer}\
 $directory\
 $git_branch\
 $git_status\
@@ -11,6 +12,16 @@ $nodejs\
 $line_break\
 $character\
 """
+
+# Warn — inline, first on the prompt line, only when active — that a kubeconfig
+# grants read/write access to ODL EKS (incl. production). Shares one detector
+# with Claude Code's statusline. Silent when read-only or absent.
+[custom.eks_writer]
+description = "ODL EKS read/write (writer) kubeconfig warning"
+when = "$HOME/dev/dotfiles/bin/odl-eks-kubeconfig-mode"
+command = "$HOME/dev/dotfiles/bin/odl-eks-kubeconfig-mode"
+format = "[$output](bold red) "
+shell = ["sh"]
 
 [character]
 success_symbol = "[➜](bold green)"

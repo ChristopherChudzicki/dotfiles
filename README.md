@@ -7,6 +7,7 @@ Shell, prompt, and editor config synced between Macs.
 - `zsh/` — zshrc and zprofile
 - `fish/` — config.fish, conf.d/ (autoloaded settings), functions/ (autoloaded functions, bucketed into `shared/`, `personal/`, `work/`)
 - `starship/` — prompt config (used by both shells)
+- `bin/` — standalone helper scripts, invoked by absolute path (not on `$PATH`)
 - `ghostty/` — Ghostty terminal emulator config
 - `espanso/` — espanso text expander: global config (`config/`) and snippets (`match/`)
 - `link.sh` — idempotent symlink installer with backups
