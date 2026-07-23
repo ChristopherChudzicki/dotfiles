@@ -1,0 +1,360 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["cyclopts", "markdown-it-py"]
+# ///
+"""Read Claude Code responses aloud on macOS, with markdown stripped for speech.
+
+Wired into Claude Code via three hooks in ~/.claude/settings.json (that file is
+NOT dotfiles-managed; see the repo README for the exact entries):
+
+  Stop            -> claude-tts speak    (speak the finished response)
+  UserPromptSubmit-> claude-tts stop     (shut up when you start a new prompt)
+  SessionEnd      -> claude-tts cleanup  (drop this session's toggle file)
+
+Each hook passes its event JSON on stdin; `speak`/`cleanup` read it there.
+
+Speaking is OFF by default and enabled selectively. Three toggle scopes, each a
+one-line on/off file under ~/.claude/tts/, resolved most-specific-first when a
+response finishes:
+
+    session  (~/.claude/tts/session/<id>)   <- highest precedence
+    repo     (~/.claude/tts/repo/<slug>)
+    global   (~/.claude/tts/global)
+    <none set> -> off                        <- default
+
+So `claude-tts on` speaks just the current session; `on --repo` a whole repo you
+work in aloud; `on --global` everywhere. Turn any layer off again with `off`.
+
+Markdown is rendered to something worth hearing rather than read literally:
+formatting markers are dropped, links read as their text, and code blocks,
+tables, and images collapse to short spoken placeholders ("Code block.",
+"Table.") instead of being recited character by character.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import signal
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Annotated
+
+import cyclopts
+from markdown_it import MarkdownIt
+
+app = cyclopts.App(help="Read Claude Code responses aloud (macOS `say`).")
+
+STATE_DIR = Path.home() / ".claude" / "tts"
+PID_FILE = STATE_DIR / "say.pid"
+
+# Full responses are read (killable via the UserPromptSubmit hook), but a
+# runaway wall of text shouldn't trap you narrating for ten minutes.
+MAX_WORDS = 2000
+
+# Session toggle files outlive their sessions if a SessionEnd hook is ever
+# missed (crash, kill -9); sweep anything older than this on cleanup.
+SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
+
+
+# --------------------------------------------------------------------------- #
+# State: scope resolution and on/off files
+# --------------------------------------------------------------------------- #
+def _slug(text: str) -> str:
+    """Filesystem-safe key for a repo path (readable, collisions negligible)."""
+    return re.sub(r"[^A-Za-z0-9]+", "-", text).strip("-") or "root"
+
+
+def _repo_root(cwd: str | None = None) -> str:
+    """Git top-level of cwd, or cwd itself when not inside a repo."""
+    cwd = cwd or os.getcwd()
+    try:
+        out = subprocess.run(
+            ["git", "-C", cwd, "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return out.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return cwd
+
+
+def _session_file(session_id: str) -> Path:
+    return STATE_DIR / "session" / session_id
+
+
+def _repo_file(cwd: str | None = None) -> Path:
+    return STATE_DIR / "repo" / _slug(_repo_root(cwd))
+
+
+def _global_file() -> Path:
+    return STATE_DIR / "global"
+
+
+def _read_toggle(path: Path) -> bool | None:
+    """True/False if the file sets on/off, None if it doesn't exist."""
+    try:
+        value = path.read_text().strip().lower()
+    except FileNotFoundError:
+        return None
+    return value == "on"
+
+
+def _write_toggle(path: Path, enabled: bool) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("on\n" if enabled else "off\n")
+
+
+def _resolve(session_id: str | None, cwd: str | None) -> tuple[bool, str]:
+    """Effective on/off plus the layer that decided it."""
+    if session_id:
+        value = _read_toggle(_session_file(session_id))
+        if value is not None:
+            return value, "session"
+    value = _read_toggle(_repo_file(cwd))
+    if value is not None:
+        return value, "repo"
+    value = _read_toggle(_global_file())
+    if value is not None:
+        return value, "global"
+    return False, "default"
+
+
+def _target_file(repo: bool, glob: bool, session_id: str | None) -> Path:
+    """Pick the toggle file a scope flag refers to; validate the combination."""
+    if repo and glob:
+        sys.exit("choose one scope: --repo or --global, not both")
+    if glob:
+        return _global_file()
+    if repo:
+        return _repo_file()
+    if not session_id:
+        sys.exit(
+            "no session detected (CLAUDE_CODE_SESSION_ID unset).\n"
+            "Run this inside a Claude session, or pass --repo / --global."
+        )
+    return _session_file(session_id)
+
+
+# --------------------------------------------------------------------------- #
+# Markdown -> speech
+# --------------------------------------------------------------------------- #
+def _render_inline(children) -> str:
+    """Flatten one inline token's children into spoken text."""
+    buf: list[str] = []
+    for child in children or []:
+        kind = child.type
+        if kind in ("text", "code_inline"):
+            buf.append(child.content)
+        elif kind in ("softbreak", "hardbreak"):
+            buf.append(" ")
+        elif kind == "image":
+            buf.append(child.content.strip() or "image")
+        # strong/em/s and link open|close carry only markers/URLs -> dropped;
+        # their visible text arrives as its own `text` child.
+    return "".join(buf)
+
+
+def render_speech(markdown: str) -> str:
+    """Turn markdown into text worth hearing (see module docstring for rules)."""
+    # gfm-like gives us tables and strikethrough; linkify (bare-URL detection)
+    # needs an extra package and buys nothing for speech, so switch it off.
+    md = MarkdownIt("gfm-like").disable("linkify")
+    tokens = md.parse(markdown)
+    lines: list[str] = []
+    skip_table = 0
+
+    for tok in tokens:
+        if skip_table:
+            if tok.type == "table_close":
+                skip_table -= 1
+            continue
+
+        if tok.type == "table_open":
+            lines.append("Table.")
+            skip_table += 1
+        elif tok.type in ("fence", "code_block"):
+            lang = (tok.info or "").strip().split()
+            lines.append(f"{lang[0]} code block." if lang else "Code block.")
+        elif tok.type == "inline":
+            lines.append(_render_inline(tok.children))
+        # hr, html_block, and the *_open/_close scaffolding contribute nothing.
+
+    # Each retained line is a block; give `say` a sentence break between them.
+    sentences: list[str] = []
+    for line in lines:
+        line = re.sub(r"\s+", " ", line).strip()
+        if not line:
+            continue
+        if line[-1] not in ".!?:,;":
+            line += "."
+        sentences.append(line)
+
+    speech = " ".join(sentences)
+    words = speech.split()
+    if len(words) > MAX_WORDS:
+        speech = " ".join(words[:MAX_WORDS]) + " Response truncated."
+    return speech
+
+
+def _last_assistant_text(transcript_path: str) -> str:
+    """Text of the most recent assistant message in a JSONL transcript."""
+    latest = ""
+    try:
+        raw = Path(transcript_path).read_text()
+    except (FileNotFoundError, TypeError):
+        return ""
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if obj.get("type") != "assistant":
+            continue
+        content = obj.get("message", {}).get("content", [])
+        texts = [c.get("text", "") for c in content if c.get("type") == "text"]
+        if texts:
+            latest = "\n\n".join(t for t in texts if t)
+    return latest
+
+
+# --------------------------------------------------------------------------- #
+# Speaking process control
+# --------------------------------------------------------------------------- #
+def _kill_current() -> None:
+    """Stop any speech this tool started (best effort)."""
+    try:
+        pid = int(PID_FILE.read_text().strip())
+    except (FileNotFoundError, ValueError):
+        return
+    try:
+        os.kill(pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    PID_FILE.unlink(missing_ok=True)
+
+
+def _speak_detached(text: str) -> None:
+    """Fire `say` in its own session so it outlives this hook process."""
+    STATE_DIR.mkdir(parents=True, exist_ok=True)
+    proc = subprocess.Popen(
+        ["say"],
+        stdin=subprocess.PIPE,
+        start_new_session=True,
+    )
+    proc.stdin.write(text.encode())
+    proc.stdin.close()
+    PID_FILE.write_text(str(proc.pid))
+
+
+def _read_event() -> dict:
+    """Parse the hook event JSON from stdin (empty dict if none/invalid)."""
+    if sys.stdin.isatty():
+        return {}
+    try:
+        return json.loads(sys.stdin.read() or "{}")
+    except json.JSONDecodeError:
+        return {}
+
+
+# --------------------------------------------------------------------------- #
+# Commands
+# --------------------------------------------------------------------------- #
+@app.command
+def speak() -> None:
+    """Speak the finished response (Stop hook; reads event JSON on stdin)."""
+    event = _read_event()
+    session_id = event.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID")
+    cwd = event.get("cwd")
+
+    enabled, _ = _resolve(session_id, cwd)
+    if not enabled:
+        return
+
+    text = render_speech(_last_assistant_text(event.get("transcript_path", "")))
+    if not text.strip():
+        return
+
+    _kill_current()  # a new response interrupts the previous one
+    _speak_detached(text)
+
+
+@app.command
+def stop() -> None:
+    """Silence in-flight speech (UserPromptSubmit hook)."""
+    _kill_current()
+
+
+@app.command
+def cleanup() -> None:
+    """Drop this session's toggle file and sweep stale ones (SessionEnd hook)."""
+    event = _read_event()
+    session_id = event.get("session_id") or os.environ.get("CLAUDE_CODE_SESSION_ID")
+    if session_id:
+        _session_file(session_id).unlink(missing_ok=True)
+
+    session_dir = STATE_DIR / "session"
+    if not session_dir.is_dir():
+        return
+    cutoff = time.time() - SESSION_TTL_SECONDS
+    for stale in session_dir.iterdir():
+        try:
+            if stale.stat().st_mtime < cutoff:
+                stale.unlink(missing_ok=True)
+        except OSError:
+            pass
+
+
+def _toggle(enabled: bool, repo: bool, glob: bool) -> None:
+    session_id = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    path = _target_file(repo, glob, session_id)
+    _write_toggle(path, enabled)
+    where = "globally" if glob else "for this repo" if repo else "for this session"
+    print(f"read-aloud {'on' if enabled else 'off'} {where}")
+
+
+@app.command
+def on(
+    repo: Annotated[bool, cyclopts.Parameter(name="--repo")] = False,
+    glob: Annotated[bool, cyclopts.Parameter(name="--global")] = False,
+) -> None:
+    """Enable read-aloud (default scope: current session)."""
+    _toggle(True, repo, glob)
+
+
+@app.command
+def off(
+    repo: Annotated[bool, cyclopts.Parameter(name="--repo")] = False,
+    glob: Annotated[bool, cyclopts.Parameter(name="--global")] = False,
+) -> None:
+    """Disable read-aloud (default scope: current session)."""
+    _toggle(False, repo, glob)
+
+
+@app.command
+def status() -> None:
+    """Show the effective setting for the current session and repo."""
+    session_id = os.environ.get("CLAUDE_CODE_SESSION_ID")
+    enabled, source = _resolve(session_id, None)
+    print(f"read-aloud: {'ON' if enabled else 'OFF'} (from {source})")
+    print(f"  session : {_read_toggle(_session_file(session_id)) if session_id else 'n/a (no session)'}")
+    print(f"  repo    : {_read_toggle(_repo_file())}  [{_repo_root()}]")
+    print(f"  global  : {_read_toggle(_global_file())}")
+
+
+@app.command
+def render() -> None:
+    """Print the spoken form of markdown read from stdin (for testing)."""
+    print(render_speech(sys.stdin.read()))
+
+
+if __name__ == "__main__":
+    app()

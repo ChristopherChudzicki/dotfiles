@@ -7,7 +7,7 @@ Shell, prompt, and editor config synced between Macs.
 - `zsh/` — zshrc and zprofile
 - `fish/` — config.fish, conf.d/ (autoloaded settings), functions/ (autoloaded functions, bucketed into `shared/`, `personal/`, `work/`)
 - `starship/` — prompt config (used by both shells)
-- `bin/` — standalone helper scripts, invoked by absolute path (not on `$PATH`)
+- `bin/` — standalone helper scripts, invoked by absolute path (not on `$PATH`), except `claude-tts` which `link.sh` exposes on `$PATH` via `~/.local/bin`
 - `ghostty/` — Ghostty terminal emulator config
 - `espanso/` — espanso text expander: global config (`config/`) and snippets (`match/`)
 - `link.sh` — idempotent symlink installer with backups
@@ -59,3 +59,37 @@ Edit files in this repo directly. Symlinks point here, so changes are live in ne
 - espanso: only the global config and base snippets are tracked; hub packages are managed by espanso, not symlinked. `install-deps.sh` reinstalls them (currently just `lorem`) — add new ones to the `ESPANSO_PACKAGES` list there.
 - `nvm` (if present) is left on disk; `fnm` is used for new work. Re-install needed Node versions: `fnm install <version>`.
 - `pyenv` (if present) is left on disk but no longer initialized. `uv` covers Python use cases. Remove via `brew uninstall pyenv` when confident.
+
+## Claude Code read-aloud (`bin/claude-tts`)
+
+Reads Claude Code responses aloud via macOS `say`, with markdown stripped for
+speech (formatting dropped; code blocks/tables/images collapse to short spoken
+placeholders). Requires `uv` (in the Brewfile); deps are declared inline in the
+script and fetched on first run.
+
+Unlike most `bin/` scripts, this one is invoked by name: `link.sh` symlinks it
+into `~/.local/bin` (on `$PATH` in every shell), so `claude-tts` works from zsh,
+fish, and Claude Code's `!` shell alike.
+
+Speaking is **off by default** and enabled per scope, most-specific wins:
+
+```bash
+claude-tts on            # this session only (run inside a session: !claude-tts on)
+claude-tts on --repo     # every session in the current git repo
+claude-tts on --global   # everywhere
+claude-tts off [--repo|--global]   # same scopes
+claude-tts status        # effective setting + where it resolved
+```
+
+State lives in `~/.claude/tts/`. A new response interrupts any in-progress
+speech, and starting a new prompt silences it.
+
+`~/.claude/settings.json` is **not** managed by this repo, so the hooks that
+drive it must be added there by hand on each machine — three entries pointing at
+this script (adjust the path if the repo isn't at `~/dev/dotfiles`):
+
+- `Stop` → `.../bin/claude-tts speak` — speak the finished response
+- `UserPromptSubmit` → `.../bin/claude-tts stop` — silence speech on a new prompt
+- `SessionEnd` → `.../bin/claude-tts cleanup` — drop the session's toggle file
+
+Add each alongside any existing hooks for that event rather than replacing them.

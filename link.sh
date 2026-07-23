@@ -30,6 +30,7 @@ BACKUP_DIR="$HOME/dotfiles-backup/$(date +%Y-%m-%d)"
 ESPANSO_DIR="$HOME/Library/Application Support/espanso"
 
 mkdir -p "$BACKUP_DIR"
+mkdir -p "$HOME/.local/bin"
 mkdir -p "$HOME/.config/fish/conf.d"
 mkdir -p "$HOME/.config/fish/functions"
 mkdir -p "$HOME/.config/ghostty"
@@ -108,6 +109,11 @@ link_function_dir() {
 link_function_dir "$REPO_DIR/fish/functions/shared"
 [ "$INSTALL_PERSONAL" = 1 ] && link_function_dir "$REPO_DIR/fish/functions/personal"
 [ "$INSTALL_WORK" = 1 ]     && link_function_dir "$REPO_DIR/fish/functions/work"
+
+# bin/ scripts meant to be invoked by name (not absolute path) — exposed on
+# $PATH via ~/.local/bin, which fish/conf.d/00-path.fish already adds. Most
+# bin/ scripts are called by absolute path and intentionally NOT linked here.
+link "$REPO_DIR/bin/claude-tts" "$HOME/.local/bin/claude-tts"
 
 # Ghostty user themes
 for src in "$REPO_DIR"/ghostty/themes/*; do
