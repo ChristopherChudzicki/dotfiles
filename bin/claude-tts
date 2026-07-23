@@ -54,7 +54,7 @@ PID_FILE = STATE_DIR / "say.pid"
 
 # Speaking rate in words per minute passed to `say -r`. None = the system
 # default (~175). Bump it (e.g. 220) to read faster.
-SPEECH_RATE_WPM: int | None = 325
+SPEECH_RATE_WPM: int | None = 400
 
 # Full responses are read (killable via the UserPromptSubmit hook), but a
 # runaway wall of text shouldn't trap you narrating for ten minutes.
