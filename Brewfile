@@ -1,8 +1,6 @@
 # Homebrew dependencies for this dotfiles setup.
 # Install with `./install-deps.sh` (runs `brew bundle`). Idempotent.
 
-tap "espanso/espanso"
-
 # Shell + prompt
 brew "fish"
 brew "starship"
